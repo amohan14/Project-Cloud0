@@ -53,5 +53,5 @@ def get_spot_price(region_code, instance_typ):
     for az, sp in sp_dict.items():
         if sp == minval:
             return [az, sp]
-
+    print(az, sp)
 
