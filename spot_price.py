@@ -58,4 +58,4 @@ if __name__ == '__main__':
     region_code = 'us-east-1'
     instance_typ = 't2.micro'
     spot = get_spot_price(region_code, instance_typ)
-    print(spot)
+    print(spot[1])
