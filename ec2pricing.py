@@ -20,14 +20,10 @@ def get_ondemand_price(region, os, instancet):
     f = FLT.format(r=region, o=os, i=instancet)
     data = client.get_products(ServiceCode='AmazonEC2', Filters=json.loads(f), MaxResults=100)
 
-    # write header to csv file
-    # with open('ondemand.csv', 'w', encoding='utf-8', newline='') as csvfile:
-    #         writer = csv.writer(csvfile, delimiter='|')
-    #         headers = ['InstanceType', 'OnDemandPrice']
-    #         writer.writerow(headers)
     dic = {}
     instance_type_list = []
     od_price_list = []
+
     for index in range(len(data['PriceList'])):
         on_demand = json.loads(data['PriceList'][index])['terms']['OnDemand']
         # print(on_demand1)
@@ -38,15 +34,11 @@ def get_ondemand_price(region, os, instancet):
         od_price = float(on_demand[od1]['priceDimensions'][od2]['pricePerUnit']['USD']) # string
         instance_type_list.append(instance)
         od_price_list.append(od_price)
-
-        # with open('ondemand.csv', 'a', encoding='utf-8', newline='') as csvfile:
-        #     writer = csv.writer(csvfile, delimiter='|')
-        #     writer.writerow(dic.values())
     
-    # pinting dictionary with "InstanceType" as key and "od_price" as values
+    # Printing dictionary with "InstanceType" as key and "od_price" as values
     for index in range(len(instance_type_list)):
         dic[instance_type_list[index]] = od_price_list[index]
-    print(region_code, instance_typ, dic[instance_typ])
+    return region_code, instance_typ, dic[instance_typ]
 
 # Translate region code to region name
 def get_region_name(region_code):
@@ -68,7 +60,6 @@ def get_spot_price(region_code, instance_typ):
         InstanceTypes=[instance_typ], # c4.xlarge
         MaxResults=15,
         ProductDescriptions=['Linux/UNIX (Amazon VPC)']
-        # AvailabilityZone='us-east-1b'
     )
 
     sp_dict = {}
@@ -81,8 +72,7 @@ def get_spot_price(region_code, instance_typ):
         sp = float(spot_prices['SpotPriceHistory'][i]['SpotPrice'])
         az_list.append(az)
         sp_list.append(sp)
-        # print(spot_prices['SpotPriceHistory'][x]['SpotPrice'], spot_prices['SpotPriceHistory'][x]['AvailabilityZone'], spot_prices['SpotPriceHistory'][x]['InstanceType'])
-
+        
     for i in range(len(az_list)):
         sp_dict[az_list[i]] = sp_list[i]
     
@@ -92,29 +82,122 @@ def get_spot_price(region_code, instance_typ):
     for az, sp in sp_dict.items():
         if az not in sp_dict.keys():
             sp_dict[az] = sp
-    
-    # finding the cheapest availability zone
 
+    # finding the cheapest availability zone
+    
     minval = min(sp_dict.values())
     
     # to print the first az that satisfy the if condition use another boolean variable
-    
-    flag = False 
+     
     for az, sp in sp_dict.items():
-        if sp == minval and flag == False:
-            print(az, sp)
-            flag = True
+        if sp == minval:
+            return [az, sp]
 
+
+# Fetchiing ImageId
+def imageID():
+    client=boto3.client('ec2', region_name=region_code)
+    image=client.describe_images(
+        Filters=[
+            {'Name': 'owner-id','Values': ['137112412989']}, 
+            {'Name': 'description','Values': ['Amazon Linux 2 AMI 2.0.20200917.0 x86_64 HVM gp2']} 
+        ]
+    )
+    image_id= (image['Images'][0]['ImageId'])
+    return image_id
+
+# Fetching the keyPair
+def KeyPairName():
+    client=boto3.client('ec2',region_name=region_code)
+    keypairs = client.describe_key_pairs()
+    KeyName= keypairs['KeyPairs'][1]['KeyName']
+    return KeyName
+
+# Fetching Security Group Id
+def securityGroup():
+    client=boto3.client('ec2',region_name=region_code)
+    sg = client.describe_security_groups(
+        Filters= [{ 'Name':'group-name', 'Values' : ['ansible-node']}]
+    )
+    sgID = sg['SecurityGroups'][0]['GroupId']
+    return sgID
+
+# Requesting ec2 spot instance for cheapest Availability Zone
+def request_spot_instance(spot,image_id, key_name, instance_typ, sgID):
+    ec2_client = boto3.client('ec2',region_name=region_code)
+    response = ec2_client.request_spot_instances(
+        SpotPrice = str(spot[1]),
+        # ClientToken='string1',
+        InstanceCount=1,
+        Type='one-time',
+        LaunchSpecification = {
+            'ImageId': image_id,
+            'KeyName': key_name,
+            'InstanceType':instance_typ,
+            'Placement':{
+                'AvailabilityZone': spot[0],
+            },
+            'SecurityGroupIds':[
+                sgID
+            ]
+        }
+    )
+    return response
+
+
+# Function to print out the outputs
+def outputs(region_code, instance_typ, op_sys):
+    # Get current on-demand price for a given instance, region and os
+    on_demand = get_ondemand_price(get_region_name(region_code), op_sys, instance_typ)
+    print(list(on_demand))
+    # Get current spot prices for a given instance, region and os 
+    spot = get_spot_price(region_code, instance_typ)
+    image_id = imageID()
+    key_name = KeyPairName()
+    sgID = securityGroup()
+    spot_request= request_spot_instance(spot,image_id, key_name, instance_typ, sgID)
 
 if __name__ == '__main__':
-    
     region_code = 'us-east-1'
     instance_typ = 't2.micro'
     op_sys = 'Linux'
+    outputs(region_code, instance_typ, op_sys)
 
-    # Get current on-demand price for a given instance, region and os
-    get_ondemand_price(get_region_name(region_code), op_sys, instance_typ)
-    # print("on-demand: "+ get_region_name('us-east-1'), price)
 
-    # Get current spot prices for a given instance, region and os 
-    get_spot_price(region_code, instance_typ)
+    
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# print(spot_prices['SpotPriceHistory'][x]['SpotPrice'], spot_prices['SpotPriceHistory'][x]['AvailabilityZone'], spot_prices['SpotPriceHistory'][x]['InstanceType'])
+
+# printing values to csv files
+# def csv_printer(od_val, sp_val):
+#     # write header to csv file
+#     with open('ec2pricing.csv', 'w', encoding='utf-8', newline='') as csvfile:
+#             writer = csv.writer(csvfile, delimiter='|')
+#             headers = ['Region', 'InstanceType', 'OnDemandPrice', 'SpotPrice AZ 1', 'SpotPrice AZ 2', 'SpotPrice AZ 3', 'SpotPrice AZ 4', 'SpotPrice AZ 5','SpotPrice AZ 6', 'lowest price AZ']
+#             writer.writerow(headers)
+#     with open('ec2pricing.csv', 'a', encoding='utf-8', newline='') as csvfile:
+#             writer = csv.writer(csvfile, delimiter='|')
+#             price_list = 
+#             writer.writerow(od_val.append(sp_val))
+# pricer_dict(on_demand)
+# Printing to csv
+# csv_printer(on_demand, spot)
+
