@@ -53,10 +53,9 @@ def get_spot_price(region_code, instance_typ):
     for az, sp in sp_dict.items():
         if sp == minval:
             return [az, sp]
-    
 
-    if __name__ == '__main__':
-        region_code = 'us-east-1'
-        instance_typ = 't2.micro'
-        spot = get_spot_price(get_region_name(region_code), instance_typ)
-
+if __name__ == '__main__':
+    region_code = 'us-east-1'
+    instance_typ = 't2.micro'
+    spot = get_spot_price(region_code, instance_typ)
+    print(spot)
