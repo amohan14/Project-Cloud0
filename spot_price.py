@@ -1,6 +1,7 @@
 import boto3
 import json
 
+
 # Translate region code to region name
 def get_region_name(region_code):
     default_region = 'US East (N. Virginia)'
@@ -15,6 +16,7 @@ def get_region_name(region_code):
 
 # Finding the spot price history for availability zones
 def get_spot_price(region_code, instance_typ):
+    client = boto3.client('pricing', region_name='us-east-1')
     sp=boto3.client('ec2',region_name=region_code)
 
     spot_prices=sp.describe_spot_price_history(
