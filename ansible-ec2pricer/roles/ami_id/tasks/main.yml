@@ -1,0 +1,11 @@
+---
+  - name: find ami instance-id for Amazon Linux 2 AMI
+    ec2_ami_info:
+      owners: 137112412989
+      filters:
+        description: "Amazon Linux 2 AMI 2.0.20200917.0 x86_64 HVM gp2"
+    register: AMIs
+
+  - name: print out AMI_ID to terminal window
+    debug:
+        var: AMIs.images[0].image_id

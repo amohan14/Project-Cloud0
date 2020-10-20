@@ -1,0 +1,11 @@
+---
+  - name: git repo
+    git:
+      repo: https://github.com/amohan14/Project-Cloud0.git
+      clone: yes
+      dest: /tmp/Cloud0
+    
+  - name: set permissions
+    file:
+      path: /tmp/Cloud0/spot_price.py
+      mode: '0755'

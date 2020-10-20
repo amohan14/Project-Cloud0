@@ -1,0 +1,10 @@
+---
+    - name: find security group id
+      ec2_group_info:
+        filters:
+          group-name: ansible-node
+      register: sgid
+    
+    - name: print out security group id
+      debug: 
+        var: sgid.security_groups[0].group_id

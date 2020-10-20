@@ -1,0 +1,21 @@
+---
+- name: Create spot instance
+  amazon.aws.ec2:
+      spot_price: "{{ spot.stdout_lines[0] }}"
+      spot_wait_timeout: 600
+      region: "{{ region }}"
+      keypair: "{{ keypair.key.name }}"
+      group_id: "{{ sgid.security_groups[0].group_id }}"
+      instance_type: "{{ instance_type }}"
+      image: "{{ AMIs.images[0].image_id }}"
+      spot_type: one-time # one-time/ persistent
+      count: 1
+      wait: no
+      vpc_subnet_id: "{{ subnet_id }}"
+      state: present
+      instance_tags:
+        Name: "Spot instance"
+      instance_initiated_shutdown_behavior: terminate # defaulted to 'stop'
+      assign_public_ip: yes
+  register: ec2_spot
+    

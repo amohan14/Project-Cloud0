@@ -1,0 +1,10 @@
+---
+    - name: list all EC2 keypairs
+      ec2_key: # is there any other function for keypair
+        name: ansible
+      register: keypair
+    
+    - name: print out keypair
+      debug:
+        var: keypair.key.name
+    

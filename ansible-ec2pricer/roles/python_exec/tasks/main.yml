@@ -1,0 +1,11 @@
+---
+    - name: execute python script
+      script: /tmp/Cloud0/spot_price.py
+      args:
+        executable: python3
+      register: spot
+    
+    - name: print spot price
+      debug:
+        var: spot.stdout_lines[0]
+    
